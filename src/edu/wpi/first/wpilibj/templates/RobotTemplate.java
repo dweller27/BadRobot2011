@@ -21,6 +21,8 @@ import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.Victor;
 import edu.wpi.first.wpilibj.Encoder;
+import edu.wpi.first.wpilibj.Watchdog;
+
 /**
 * The VM is configured to automatically run this class, and to call the
 * functions corresponding to each mode, as described in the IterativeRobot
@@ -77,6 +79,8 @@ public class RobotTemplate extends IterativeRobot
 
     int autoState;
 
+    Watchdog feedMe;
+
     public void robotInit()
     {
             try
@@ -86,14 +90,14 @@ public class RobotTemplate extends IterativeRobot
                 bLeft = new CANJaguar(9);
                 bRight = new CANJaguar(7);
                 lowerArm = new Victor(2);
-                upperArm = new Victor(3);
+                upperArm = new Victor(1);
 
-                left = new DigitalInput(3); // for LineTracker
-                middle = new DigitalInput(2);
-                right = new DigitalInput(14);
+                left = new DigitalInput(9); // for LineTracker
+                middle = new DigitalInput(7);
+                right = new DigitalInput(5);
 
-                output = new DigitalOutput(10); // ultrasonic output
-                input = new DigitalInput(8); //ultrasonic input
+                output = new DigitalOutput(2); // ultrasonic output
+                input = new DigitalInput(3); //ultrasonic input
                 ultraSonic = new Ultrasonic(output, input, Ultrasonic.Unit.kMillimeter); //initialize ultrasonic
                 ultraSonic.setEnabled(true);
                 ultraSonic.setAutomaticMode(true);
@@ -129,6 +133,9 @@ public class RobotTemplate extends IterativeRobot
                 lowerArmEncoder = new Encoder(1,1);
                 upperArmEncoder.reset(); //"Zero out" the encoders
                 lowerArmEncoder.reset();
+
+                feedMe = Watchdog.getInstance();
+                feedMe.setExpiration(1);
             } 
             catch (Exception e)
             {
@@ -145,6 +152,7 @@ public class RobotTemplate extends IterativeRobot
     int lastSense = 0; // last LineTracker which saw line (1 for left, 2 for right)
     public void autonomousPeriodic()
     {
+        feedMe.feed();
         try
         {
             setBreak(fLeft);
@@ -250,7 +258,9 @@ public class RobotTemplate extends IterativeRobot
   
     public void teleopPeriodic()
     {
-        try{
+        feedMe.feed();
+        try
+        {
         setCoast(fLeft); // set them to drive in coast mode (no sudden brakes)
         setCoast(fRight);
         setCoast(bLeft);
@@ -612,7 +622,10 @@ lcd.updateLCD();
                     if (!closerThan(200))
                         straight(0.5);
                     else
-                        autoState = 4;
+                    {
+                       autoState = 4;
+                       straight(0);
+                    }
                     break;
                 case 4:
                     Kraken.set(true);
